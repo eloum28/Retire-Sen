@@ -25,7 +25,7 @@ const TABS = [
 
 export default function Simulator() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isDarkMode, setIsDarkMode] = useState(false); // Can be tied to system later
+  const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
   
   const [config, setConfig] = useState<SimConfig>({
     primaryCurrentAge: 57,
