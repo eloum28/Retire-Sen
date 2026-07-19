@@ -16,10 +16,13 @@ export default function Simulator() {
     spouseSSAge: 62,
     spouseSSAmount: 1000,
     currentPortfolio: 220000,
-    growthRate: 5.0,
+    growthRate: 2.0,
+    cashContingency: 50000,
+    emergencyFund: 25000,
+    cashYield: 3.0,
     livingExpenses: 1800,
-    relocationExpense: 15000,
-    inflationRate: 0,
+    relocationExpense: 0,
+    inflationRate: 2.0,
   });
 
   const handleChange = (key: keyof typeof config, value: number) => {
@@ -34,7 +37,10 @@ export default function Simulator() {
     let currentPrimarySS = config.primarySSAmount;
     let currentSpouseSS = config.spouseSSAmount;
 
-    for (let age = config.primaryCurrentAge; age <= 95; age++) {
+    let cashBucket = 0;
+    let investedBucket = 0;
+
+    for (let age = config.primaryCurrentAge; age <= 80; age++) {
       const spouseAge = config.spouseCurrentAge + (age - config.primaryCurrentAge);
       const isRetired = age >= config.targetRetirementAge;
       
@@ -48,11 +54,52 @@ export default function Simulator() {
       const net = income - exp;
       
       const startBalance = currentBalance;
-      const balanceAfterCashFlow = startBalance - oneTime + net;
-      
-      const growthAmount = Math.max(0, balanceAfterCashFlow) * (config.growthRate / 100);
-      let endBalance = balanceAfterCashFlow + growthAmount;
-      if (endBalance < 0) endBalance = 0;
+      let endBalance = 0;
+      let growthAmount = 0;
+
+      if (age === config.targetRetirementAge) {
+        let availableAfterOneTime = startBalance - oneTime;
+        let desiredCash = config.cashContingency + config.emergencyFund;
+        cashBucket = Math.min(desiredCash, Math.max(0, availableAfterOneTime));
+        investedBucket = Math.max(0, availableAfterOneTime - cashBucket);
+      }
+
+      if (age < config.targetRetirementAge) {
+        let balanceAfterCashFlow = startBalance - oneTime + net;
+        growthAmount = Math.max(0, balanceAfterCashFlow) * (config.growthRate / 100);
+        endBalance = balanceAfterCashFlow + growthAmount;
+        currentBalance = endBalance;
+        investedBucket = currentBalance;
+        cashBucket = 0;
+      } else {
+        let deficitToFund = net < 0 ? Math.abs(net) : 0;
+        let surplusToInvest = net > 0 ? net : 0;
+
+        if (deficitToFund > 0) {
+          let availableContingency = Math.max(0, cashBucket - config.emergencyFund);
+          let actualCashWithdrawal = Math.min(deficitToFund, availableContingency);
+          cashBucket -= actualCashWithdrawal;
+          let remainingDeficit = deficitToFund - actualCashWithdrawal;
+          if (remainingDeficit > 0) {
+            investedBucket -= remainingDeficit;
+            if (investedBucket < 0) investedBucket = 0;
+          }
+        }
+
+        if (surplusToInvest > 0) {
+          investedBucket += surplusToInvest;
+        }
+
+        let cashGrowthAmount = cashBucket * (config.cashYield / 100);
+        cashBucket += cashGrowthAmount;
+
+        let investedGrowthAmount = Math.max(0, investedBucket) * (config.growthRate / 100);
+        investedBucket += investedGrowthAmount;
+
+        growthAmount = cashGrowthAmount + investedGrowthAmount;
+        endBalance = cashBucket + investedBucket;
+        currentBalance = endBalance;
+      }
 
       let phaseName = 'Pre-Retirement';
       let phaseColor = 'text-slate-500 bg-slate-200/50 border-slate-300/50';
@@ -80,13 +127,13 @@ export default function Simulator() {
         net,
         growthAmount,
         startBalance,
+        cashBucket,
+        investedBucket,
         endBalance,
         phaseName,
         phaseColor
       });
 
-      currentBalance = endBalance;
-      
       if (config.inflationRate > 0) {
         const inflationFactor = 1 + (config.inflationRate / 100);
         currentLivingExpenses *= inflationFactor;
@@ -118,6 +165,9 @@ export default function Simulator() {
     const phase2Net = phase2Data ? phase2Data.net / 12 : (config.primarySSAmount - config.livingExpenses);
     const phase3Net = phase3Data ? phase3Data.net / 12 : (config.primarySSAmount + config.spouseSSAmount - config.livingExpenses);
 
+    const initialCash = config.cashContingency + config.emergencyFund;
+    const monthsCovered = Math.floor(initialCash / config.livingExpenses);
+
     return { 
       atRetirement, 
       legacy, 
@@ -125,7 +175,9 @@ export default function Simulator() {
       drawdownPercent,
       phase1Net,
       phase2Net,
-      phase3Net
+      phase3Net,
+      initialCash,
+      monthsCovered
     };
   }, [data, config]);
 
@@ -194,6 +246,12 @@ export default function Simulator() {
             <Input label="Annual Growth Rate" value={config.growthRate} onChange={(v: number) => handleChange('growthRate', v)} suffix="%" min={0} max={12} step={0.1} />
           </FormGroup>
 
+          <FormGroup title="Cash Buffer & Contingency Reserves (Bucket 1)">
+            <Input label="Cash Contingency Fund" value={config.cashContingency} onChange={(v: number) => handleChange('cashContingency', v)} prefix="$" min={0} max={100000} step={1000} />
+            <Input label="Emergency Fund" value={config.emergencyFund} onChange={(v: number) => handleChange('emergencyFund', v)} prefix="$" min={0} max={50000} step={1000} />
+            <Input label="Cash Bucket Annual Yield" value={config.cashYield} onChange={(v: number) => handleChange('cashYield', v)} suffix="%" min={0} max={6} step={0.1} />
+          </FormGroup>
+
           <FormGroup title="Social Security">
             <div className="space-y-4">
               <div className="space-y-3">
@@ -225,7 +283,13 @@ export default function Simulator() {
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
         <div className="p-6 lg:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
           {/* KPI Header Section */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 shrink-0">
+            <KpiCard 
+              title="Initial Cash Reserves Buffer" 
+              value={formatCurrency(kpis.initialCash)} 
+              colorClass="text-slate-900"
+              subtitle={`Covers ${kpis.monthsCovered} months of net deficit`}
+            />
             <KpiCard 
               title="Nest Egg at Retirement" 
               value={formatCurrency(kpis.atRetirement)} 
@@ -244,7 +308,7 @@ export default function Simulator() {
               }
             />
             <KpiCard 
-              title="Legacy Balance (Age 95)" 
+              title="Legacy Balance (Age 80)" 
               value={formatCurrency(kpis.legacy)} 
               colorClass="text-emerald-700" 
               subtitle="Terminal safety net"
@@ -328,7 +392,9 @@ export default function Simulator() {
                     <th className="p-4 text-[10px] uppercase tracking-wider font-bold text-right">Ann. Growth</th>
                     <th className="p-4 text-[10px] uppercase tracking-wider font-bold text-right">One-Time</th>
                     <th className="p-4 text-[10px] uppercase tracking-wider font-bold text-right">Net Flow</th>
-                    <th className="p-4 text-[10px] uppercase tracking-wider font-bold text-right">End Bal</th>
+                    <th className="p-4 text-[10px] uppercase tracking-wider font-bold text-right text-amber-300">Cash Reserves</th>
+                    <th className="p-4 text-[10px] uppercase tracking-wider font-bold text-right text-blue-300">Invested Capital</th>
+                    <th className="p-4 text-[10px] uppercase tracking-wider font-bold text-right">Total Net Worth</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -351,6 +417,8 @@ export default function Simulator() {
                       <td className={`p-4 text-xs text-right font-mono ${row.net > 0 ? 'text-emerald-600' : row.net < 0 ? 'text-red-600' : 'text-slate-400'}`}>
                         {row.net !== 0 ? formatCurrency(row.net) : '-'}
                       </td>
+                      <td className="p-4 text-xs text-right font-mono font-medium text-amber-700">{formatCurrency(row.cashBucket)}</td>
+                      <td className="p-4 text-xs text-right font-mono font-medium text-blue-700">{formatCurrency(row.investedBucket)}</td>
                       <td className="p-4 text-xs text-right font-mono font-bold text-slate-800">{formatCurrency(row.endBalance)}</td>
                     </tr>
                   ))}
