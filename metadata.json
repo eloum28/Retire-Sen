@@ -1,0 +1,6 @@
+{
+  "name": "Retirement Simulator",
+  "description": "Interactive Retirement Phase Simulator & Longevity Planner",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
