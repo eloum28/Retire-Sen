@@ -41,7 +41,6 @@ export default function Simulator() {
     monteCarloSims: 2000,
     cashContingency: 50000,
     emergencyFund: 25000,
-    cashYield: 3.0,
     livingExpenses: 1800,
     relocationExpense: 0,
     inflationRate: 2.0,
@@ -100,7 +99,6 @@ export default function Simulator() {
           <FormGroup title="Cash Reserves (Bucket 1)">
             <Input label="Cash Contingency Fund" value={config.cashContingency} onChange={(v: number) => handleChange('cashContingency', v)} prefix="$" min={0} max={200000} step={5000} />
             <Input label="Emergency Fund (Floor)" value={config.emergencyFund} onChange={(v: number) => handleChange('emergencyFund', v)} prefix="$" min={0} max={100000} step={5000} />
-            <Input label="Cash Yield (HYSA)" value={config.cashYield} onChange={(v: number) => handleChange('cashYield', v)} suffix="%" min={0} max={6} step={0.1} />
           </FormGroup>
 
           <FormGroup title="Living Expenses">

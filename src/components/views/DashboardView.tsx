@@ -170,7 +170,7 @@ export default function DashboardView({ sim, config }: { sim: SimulationResult, 
                   row.phaseName.includes('Phase 1') ? 'bg-amber-50/20 dark:bg-amber-900/10' :
                   row.phaseName.includes('Phase 2') ? 'bg-blue-50/20 dark:bg-blue-900/10' :
                   row.phaseName.includes('Phase 3') ? 'bg-emerald-50/20 dark:bg-emerald-900/10' : 'bg-transparent')}>
-                  <td className="p-4 text-xs font-medium whitespace-nowrap text-slate-600 dark:text-slate-300">
+                  <td className="p-4 text-xs font-medium whitespace-nowrap text-slate-800 dark:text-slate-100">
                     {row.primaryAge} / {row.spouseAge}
                   </td>
                   <td className="p-4">
@@ -178,14 +178,14 @@ export default function DashboardView({ sim, config }: { sim: SimulationResult, 
                       {row.phaseName.split(':')[0]}
                     </span>
                   </td>
-                  <td className="p-4 text-xs text-right font-mono text-slate-500 dark:text-slate-400">{formatCurrency(row.startBalance)}</td>
+                  <td className="p-4 text-xs text-right font-mono text-slate-700 dark:text-slate-300">{formatCurrency(row.startBalance)}</td>
                   <td className="p-4 text-xs text-right font-mono text-emerald-600 dark:text-emerald-400">+{formatCurrency(row.growthAmount)}</td>
-                  <td className={`p-4 text-xs text-right font-mono ${row.net > 0 ? 'text-emerald-600 dark:text-emerald-400' : row.net < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`}>
+                  <td className={`p-4 text-xs text-right font-mono ${row.net > 0 ? 'text-emerald-600 dark:text-emerald-400' : row.net < 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
                     {row.net !== 0 ? formatCurrency(row.net) : '-'}
                   </td>
-                  <td className="p-4 text-xs text-right font-mono font-medium text-amber-700 dark:text-amber-500">{formatCurrency(row.cashBucket)}</td>
-                  <td className="p-4 text-xs text-right font-mono font-medium text-blue-700 dark:text-blue-500">{formatCurrency(row.investedBucket)}</td>
-                  <td className="p-4 text-xs text-right font-mono font-bold text-slate-800 dark:text-slate-100">{formatCurrency(row.endBalance)}</td>
+                  <td className="p-4 text-xs text-right font-mono font-medium text-amber-700 dark:text-amber-400">{formatCurrency(row.cashBucket)}</td>
+                  <td className="p-4 text-xs text-right font-mono font-medium text-blue-700 dark:text-blue-400">{formatCurrency(row.investedBucket)}</td>
+                  <td className="p-4 text-xs text-right font-mono font-bold text-slate-900 dark:text-slate-50">{formatCurrency(row.endBalance)}</td>
                 </tr>
               ))}
             </tbody>

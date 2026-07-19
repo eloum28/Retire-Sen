@@ -12,7 +12,6 @@ export interface SimConfig {
   monteCarloSims: number; // 5000
   cashContingency: number;
   emergencyFund: number;
-  cashYield: number; // (%)
   livingExpenses: number; // Monthly
   relocationExpense: number;
   inflationRate: number; // (%)

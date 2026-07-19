@@ -86,34 +86,31 @@ export function runSimulation(config: SimConfig, applyRandomness: boolean = fals
          }
       }
 
-      let cashGrowthAmount = cashBucket * (config.cashYield / 100);
-      cashBucket += cashGrowthAmount;
-
       let investedGrowthAmount = investedBucket > 0 ? (investedBucket * (actualGrowthRate / 100)) : 0;
       investedBucket += investedGrowthAmount;
       if (investedBucket < 0) investedBucket = 0;
 
-      growthAmount = cashGrowthAmount + investedGrowthAmount;
+      growthAmount = investedGrowthAmount;
       endBalance = cashBucket + investedBucket;
       currentBalance = endBalance;
     }
 
     let phaseName = 'Pre-Retirement';
-    let phaseColor = 'text-slate-500 bg-slate-200/50 border-slate-300/50';
+    let phaseColor = 'text-slate-700 bg-slate-200/50 border-slate-300/50 dark:text-slate-300 dark:bg-slate-700/50 dark:border-slate-600';
 
     if (isRetired) {
       if (primarySS === 0 && spouseSS === 0) {
         phaseName = 'Phase 1: Full Bridge';
-        phaseColor = 'text-amber-700 bg-amber-50 border-amber-200';
+        phaseColor = 'text-amber-800 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-800/50';
       } else if (primarySS === 0 || spouseSS === 0) {
         phaseName = 'Phase 2: Partial Bridge';
-        phaseColor = 'text-blue-700 bg-blue-50 border-blue-200';
+        phaseColor = 'text-blue-800 bg-blue-50 border-blue-200 dark:text-blue-300 dark:bg-blue-900/30 dark:border-blue-800/50';
       } else if (net >= 0) {
         phaseName = 'Phase 3: Surplus';
-        phaseColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+        phaseColor = 'text-emerald-800 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:border-emerald-800/50';
       } else {
         phaseName = 'Phase 3: Structural Deficit';
-        phaseColor = 'text-red-700 bg-red-50 border-red-200';
+        phaseColor = 'text-red-800 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-900/30 dark:border-red-800/50';
       }
     }
 
