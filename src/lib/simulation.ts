@@ -22,6 +22,12 @@ export function runSimulation(config: SimConfig, applyRandomness: boolean = fals
   let exhaustionAge: number | null = null;
   
   let atRetirement = 0;
+  let investedAtRetirement = 0;
+  let bucket1Retirement = 0;
+  let bucket2Retirement = 0;
+  let bucket3Retirement = 0;
+  let cumulativeGapDeficit = 0;
+  let gapYears = Math.max(0, config.primarySSAge - config.targetRetirementAge);
 
   for (let age = config.primaryCurrentAge; age <= 80; age++) {
     const spouseAge = config.spouseCurrentAge + (age - config.primaryCurrentAge);
@@ -45,19 +51,80 @@ export function runSimulation(config: SimConfig, applyRandomness: boolean = fals
 
     if (age === config.targetRetirementAge) {
       let availableAfterOneTime = startBalance - oneTime;
-      let desiredCash = config.cashContingency + config.emergencyFund;
+      
+      let desiredCash = 0;
+      
+      if (config.autoOptimize) {
+        let tempLivingExpenses = currentLivingExpenses;
+        let tempPrimarySS = currentPrimarySS;
+        let tempSpouseSS = currentSpouseSS;
+        let gapDeficit = 0;
+        
+        for (let a = config.targetRetirementAge; a < config.primarySSAge; a++) {
+          const sAge = config.spouseCurrentAge + (a - config.primaryCurrentAge);
+          const sSS = sAge >= config.spouseSSAge ? tempSpouseSS : 0;
+          const pSS = a >= config.primarySSAge ? tempPrimarySS : 0;
+          const inc = pSS + sSS;
+          const netFlow = inc - tempLivingExpenses;
+          if (netFlow < 0) {
+            gapDeficit += Math.abs(netFlow);
+          }
+          if (config.inflationRate > 0) {
+            tempLivingExpenses *= (1 + config.inflationRate / 100);
+            tempPrimarySS *= (1 + config.inflationRate / 100);
+            tempSpouseSS *= (1 + config.inflationRate / 100);
+          }
+        }
+        cumulativeGapDeficit = gapDeficit;
+        
+        if (config.riskProfile === 'Balanced') {
+          bucket1Retirement = cumulativeGapDeficit;
+        } else if (config.riskProfile === 'Conservative') {
+          bucket1Retirement = cumulativeGapDeficit + currentLivingExpenses;
+        } else if (config.riskProfile === 'Aggressive') {
+          bucket1Retirement = cumulativeGapDeficit * 0.75;
+        }
+        
+        bucket2Retirement = config.relocationExpense + config.emergencyFund;
+        desiredCash = bucket1Retirement + bucket2Retirement;
+        
+      } else {
+        bucket1Retirement = config.cashContingency;
+        bucket2Retirement = config.emergencyFund;
+        desiredCash = config.cashContingency + config.emergencyFund;
+      }
+
       cashBucket = Math.min(desiredCash, Math.max(0, availableAfterOneTime));
       investedBucket = Math.max(0, availableAfterOneTime - cashBucket);
+      
+      bucket3Retirement = investedBucket;
+      
+      if (cashBucket < desiredCash) {
+        bucket2Retirement = Math.min(bucket2Retirement, cashBucket);
+        bucket1Retirement = cashBucket - bucket2Retirement;
+      }
+
       atRetirement = startBalance;
+      investedAtRetirement = investedBucket;
     }
 
     if (age < config.targetRetirementAge) {
       let balanceAfterCashFlow = startBalance - oneTime + net;
-      growthAmount = Math.max(0, balanceAfterCashFlow) * (actualGrowthRate / 100);
-      endBalance = Math.max(0, balanceAfterCashFlow + growthAmount);
+      let desiredCash = 0;
+      if (config.autoOptimize) {
+         // rough desired cash pre-retirement
+         desiredCash = config.emergencyFund;
+      } else {
+         desiredCash = config.cashContingency + config.emergencyFund;
+      }
+      cashBucket = Math.min(desiredCash, Math.max(0, balanceAfterCashFlow));
+      investedBucket = Math.max(0, balanceAfterCashFlow - cashBucket);
+      
+      growthAmount = investedBucket * (actualGrowthRate / 100);
+      investedBucket += growthAmount;
+      
+      endBalance = cashBucket + investedBucket;
       currentBalance = endBalance;
-      investedBucket = currentBalance;
-      cashBucket = 0;
     } else {
       let deficitToFund = net < 0 ? Math.abs(net) : 0;
       let surplusToInvest = net > 0 ? net : 0;
@@ -152,17 +219,23 @@ export function runSimulation(config: SimConfig, applyRandomness: boolean = fals
   const initialDeficit = firstRetirementYear ? Math.abs(firstRetirementYear.net) : 0;
   const drawdownPercent = atRetirement > 0 ? (initialDeficit / atRetirement) * 100 : 0;
 
-  const initialCash = config.cashContingency + config.emergencyFund;
+  const initialCash = bucket1Retirement + bucket2Retirement;
   const monthsCovered = Math.floor(initialCash / config.livingExpenses);
 
   return {
     data,
     atRetirement,
+    investedAtRetirement,
     legacy,
     isExhausted,
     exhaustionAge,
     drawdownPercent,
     initialCash,
-    monthsCovered
+    monthsCovered,
+    bucket1Retirement,
+    bucket2Retirement,
+    bucket3Retirement,
+    cumulativeGapDeficit,
+    gapYears
   };
 }

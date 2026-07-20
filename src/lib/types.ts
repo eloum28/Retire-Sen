@@ -15,6 +15,8 @@ export interface SimConfig {
   livingExpenses: number; // Monthly
   relocationExpense: number;
   inflationRate: number; // (%)
+  autoOptimize: boolean;
+  riskProfile: 'Conservative' | 'Balanced' | 'Aggressive';
 }
 
 export interface YearData {
@@ -39,10 +41,16 @@ export interface YearData {
 export interface SimulationResult {
   data: YearData[];
   atRetirement: number;
+  investedAtRetirement: number;
   legacy: number;
   isExhausted: boolean;
   exhaustionAge: number | null;
   drawdownPercent: number;
   initialCash: number;
   monthsCovered: number;
+  bucket1Retirement: number;
+  bucket2Retirement: number;
+  bucket3Retirement: number;
+  cumulativeGapDeficit: number;
+  gapYears: number;
 }

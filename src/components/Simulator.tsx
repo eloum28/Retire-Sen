@@ -32,21 +32,23 @@ export default function Simulator() {
     targetRetirementAge: 59,
     primarySSAge: 62,
     primarySSAmount: 1800,
-    spouseCurrentAge: 55,
+    spouseCurrentAge: 50,
     spouseSSAge: 62,
     spouseSSAmount: 1000,
     currentPortfolio: 220000,
-    growthRate: 4.0, // adjusted to be realistic
+    growthRate: 1.2,
     stdDev: 12.0,
     monteCarloSims: 2000,
-    cashContingency: 50000,
+    cashContingency: 75000,
     emergencyFund: 25000,
     livingExpenses: 1800,
     relocationExpense: 0,
     inflationRate: 2.0,
+    autoOptimize: true,
+    riskProfile: 'Balanced',
   });
 
-  const handleChange = (key: keyof typeof config, value: number) => {
+  const handleChange = (key: keyof typeof config, value: any) => {
     setConfig(prev => ({ ...prev, [key]: value }));
   };
 
@@ -96,9 +98,64 @@ export default function Simulator() {
             <Input label="Monte Carlo Simulations" value={config.monteCarloSims} onChange={(v: number) => handleChange('monteCarloSims', v)} min={100} max={5000} step={100} />
           </FormGroup>
 
-          <FormGroup title="Cash Reserves (Bucket 1)">
-            <Input label="Cash Contingency Fund" value={config.cashContingency} onChange={(v: number) => handleChange('cashContingency', v)} prefix="$" min={0} max={200000} step={5000} />
-            <Input label="Emergency Fund (Floor)" value={config.emergencyFund} onChange={(v: number) => handleChange('emergencyFund', v)} prefix="$" min={0} max={100000} step={5000} />
+          <FormGroup title="Risk Profile & Bucket Automation">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Auto-Optimize Buckets</label>
+                <button
+                  onClick={() => handleChange('autoOptimize', !config.autoOptimize)}
+                  className={cn(
+                    "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2",
+                    config.autoOptimize ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                  )}
+                >
+                  <span className="sr-only">Use Auto-Optimize</span>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "pointer-events-none absolute left-0.5 inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      config.autoOptimize ? "translate-x-4" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">Algorithmic advisor manages bucket splits</p>
+            </div>
+            
+            <div className="mb-2">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">Risk Tolerance</label>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                {['Conservative', 'Balanced', 'Aggressive'].map(profile => (
+                  <button
+                    key={profile}
+                    onClick={() => handleChange('riskProfile', profile)}
+                    className={cn(
+                      "flex-1 text-[10px] font-bold py-1.5 rounded-md transition-colors",
+                      config.riskProfile === profile 
+                        ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    )}
+                  >
+                    {profile}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </FormGroup>
+
+          <FormGroup title="Cash Reserves (Bucket 1 & 2)">
+            {config.autoOptimize && (
+              <div className="mb-4 bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30 rounded-lg p-2.5 text-center">
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                  <BrainCircuit className="w-3 h-3" />
+                  Algorithmically Managed
+                </span>
+              </div>
+            )}
+            <div className={config.autoOptimize ? "opacity-50 pointer-events-none grayscale" : ""}>
+              <Input label="Cash Contingency Fund" value={config.cashContingency} onChange={(v: number) => handleChange('cashContingency', v)} prefix="$" min={0} max={200000} step={5000} />
+              <Input label="Emergency Fund (Floor)" value={config.emergencyFund} onChange={(v: number) => handleChange('emergencyFund', v)} prefix="$" min={0} max={100000} step={5000} />
+            </div>
           </FormGroup>
 
           <FormGroup title="Living Expenses">
